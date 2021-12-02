@@ -216,6 +216,9 @@ def dispatch_get_logs(
     jobs: List[Greenlet] = []
 
     for chain in SYN_DATA:
+        if chain != 'polygon':
+            continue
+
         start_block = None
         addresses = []
 

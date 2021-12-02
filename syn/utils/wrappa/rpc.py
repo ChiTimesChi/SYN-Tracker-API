@@ -29,9 +29,11 @@ _start_blocks = {
     'ethereum': 13136427,
     'arbitrum': 657404,
     'avalanche': 3376709,
-    'bsc': 10065475,
+    # 'bsc': 10065475,
+    'bsc': 10465502,
     'fantom': 18503502,
-    'polygon': 18026806,
+    # 'polygon': 18026806,
+    'polygon': 18570891,
     'harmony': 18646320,
     'boba': 16188,
     'moonriver': 890949,
@@ -93,6 +95,31 @@ airdrop_ranges = {
 pool = Pool(size=64)
 MAX_BLOCKS = 5000
 T = TypeVar('T')
+
+#  Not the cleanest code, but it works
+
+TOTAL_OUT = dict()
+TOTAL_TXS = dict()
+CUR_DATE_ALL = dict()
+CHAIN_OUT_ALL = dict()
+
+# BSC
+# TRACK_OUT = {
+#     '0x0fe9778c005a5a6115cbe12b0568a2d50b765a51': 'nfd',
+#     '0x130025ee738a66e691e6a7a62381cb33c6d9ae83': 'jump',
+#     '0x23b891e5c62e0955ae2bd185990103928ab817b3': 'nusd',
+#     '0x5f4bde007dc06b867f86ebfe4802e34a1ffeed63': 'high',
+#     '0xa4080f1778e69467e905b8d6f72f6e441f9e9484': 'syn',
+#     '0xaa88c603d142c371ea0eac8756123c5805edee03': 'dog'
+# }
+
+# Polygon
+TRACK_OUT = {
+    '0x0a5926027d407222f8fe20f24cb16e103f617046': 'nfd',
+    '0xb6c473756050de474286bed418b77aeac39b02af': 'nusd',
+    '0xd8ca34fd379d9ca3c6ee3b3905678320f5b45195': 'gohm',
+    '0xf8f9efc0db77d8881500bb06ff5d6abc3070e695': 'syn',
+}
 
 
 def bridge_callback(chain: str,
@@ -161,6 +188,55 @@ def bridge_callback(chain: str,
     decimals = TOKEN_DECIMALS[chain][asset]
     # Amount is in nUSD/nETH/SYN/etc
     value = {'amount': handle_decimals(args['amount'], decimals), 'txCount': 1}
+
+    if direction == Direction.OUT:
+        global TRACK_OUT
+        key = TRACK_OUT[asset] if asset in TRACK_OUT else None
+
+        if key:
+            global TOTAL_OUT, TOTAL_TXS, CUR_DATE_ALL, CHAIN_OUT_ALL
+
+            if key not in CUR_DATE_ALL:
+                CUR_DATE_ALL[key] = ''
+                CHAIN_OUT_ALL[key] = dict()
+
+            if CUR_DATE_ALL[key] != date:
+                if CUR_DATE_ALL[key] != '':
+                    print(f'Stats for [{CUR_DATE_ALL[key]}] [{key}]')
+                    for _c, v in CHAIN_OUT_ALL[key].items():
+                        print(f'{_c[1:]:5} -> '
+                              f'[{v["tx"]:5}] '
+                              f'[{int(v["amount"]):11,}]')
+
+                    print(f'Total -> '
+                          f'[{TOTAL_TXS[key]:5}] '
+                          f'[{int(TOTAL_OUT[key]):11,}]')
+
+                CUR_DATE_ALL[key] = date
+                TOTAL_OUT[key] = 0
+                TOTAL_TXS[key] = 0
+
+                for _chain in CHAIN_OUT_ALL[key]:
+                    CHAIN_OUT_ALL[key][_chain] = {
+                        'tx': 0,
+                        'amount': 0
+                    }
+
+            if _chain not in CHAIN_OUT_ALL[key]:
+                CHAIN_OUT_ALL[key][_chain] = {
+                    'tx': 0,
+                    'amount': 0
+                }
+
+            CHAIN_OUT_ALL[key][_chain]['tx'] += 1
+            CHAIN_OUT_ALL[key][_chain]['amount'] += value['amount']
+
+            TOTAL_OUT[key] += value['amount']
+            TOTAL_TXS[key] += 1
+            print(f'{date} {key} {convert(tx_hash)} '
+                  f'[amount = {int(value["amount"]):11,}] '
+                  f'[total = {int(TOTAL_OUT[key]):11,}] '
+                  f'[{TOTAL_TXS[key]:3}]')
 
     if direction == Direction.IN:
         # All `IN` txs are from the validator;

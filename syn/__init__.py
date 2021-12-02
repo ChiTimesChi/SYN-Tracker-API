@@ -52,12 +52,12 @@ def _first_run() -> None:
         print(f'pid({os.getpid()}), acquired the lock')
         assert lock.locked()
 
-        update_getlogs_pool()
+        # update_getlogs_pool()
         update_getlogs()
-        update_caches()
+        # update_caches()
 
         # We want schedular to start AFTER.
-        schedular.start()
+        # schedular.start()
 
 
 gevent.spawn(_first_run)
